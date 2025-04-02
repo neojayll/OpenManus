@@ -152,7 +152,7 @@ def tell_to_act(text):
                 },
                 {
                     "type": "text",
-                    "text": "这是计算器的图标，如果要点击计算器可以从截图中查找该图标的坐标来点击计算器",
+                    "text": "这是计算器的图标，如果要打开或点击计算器，可以从当前界面截图中查找该图标的坐标来点击计算器",
                 },
             ],
         }
@@ -175,13 +175,17 @@ def tell_to_act(text):
                         "url": f"data:image/jpeg;base64,{capture_and_convert_to_base64()}"
                     },
                 },
-                {"type": "text", "text": "这是当前界面的截图，请继续你的操作"},
+                {
+                    "type": "text",
+                    "text": "这是当前界面的截图，请继续你的下一步操作",
+                },
             ],
         }
         history_vision.append(nmsg)
         response1 = client_vision.chat.completions.create(
             model=llm_vision_config.model, messages=history_vision
         )
+        history_vision.remove(nmsg)  # 节省token
         choose_message = response1.choices[0]
         print(choose_message.message.content)
         if "目的达成" in choose_message.message.content:
@@ -193,28 +197,28 @@ def tell_to_act(text):
             model=llm_config.model, messages=history, tools=tools
         )
         if response2.choices[0].message.tool_calls is not None:
-            tool_call = response2.choices[0].message.tool_calls[0]
-            print(response2.choices[0].message)
-            args_dict = eval(tool_call.function.arguments)
-            x = args_dict["x"]
-            y = args_dict["y"]
-            print(f"{x},{y},{tool_call.function.name}")
-            if x <= 0:
-                x = 1
-            if y <= 0:
-                y = 1
-            if x >= screenshotWidth:
-                x = screenshotWidth - 1
-            if y >= screenshotHeight:
-                y = screenshotHeight - 1
-            if tool_call.function.name == "click":
-                click(x, y)
-            elif tool_call.function.name == "rightClick":
-                rightClick(x, y)
-            elif tool_call.function.name == "doubleClick":
-                doubleClick(x, y)
-            elif tool_call.function.name == "typewrite":
-                doubleClick(x, y, args_dict["text"])
+            for tool_call in response2.choices[0].message.tool_calls:
+                print(response2.choices[0].message)
+                args_dict = eval(tool_call.function.arguments)
+                x = args_dict["x"]
+                y = args_dict["y"]
+                print(f"{x},{y},{tool_call.function.name}")
+                if x <= 0:
+                    x = 1
+                if y <= 0:
+                    y = 1
+                if x >= screenshotWidth:
+                    x = screenshotWidth - 1
+                if y >= screenshotHeight:
+                    y = screenshotHeight - 1
+                if tool_call.function.name == "click":
+                    click(x, y)
+                elif tool_call.function.name == "rightClick":
+                    rightClick(x, y)
+                elif tool_call.function.name == "doubleClick":
+                    doubleClick(x, y)
+                elif tool_call.function.name == "typewrite":
+                    doubleClick(x, y, args_dict["text"])
 
 
 def click(x, y):
